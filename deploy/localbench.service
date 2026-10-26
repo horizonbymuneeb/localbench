@@ -1,0 +1,32 @@
+[Unit]
+Description=LocalBench — Local LLM benchmark dashboard (FastAPI on 127.0.0.1:21700)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/localbench
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=LOCALBENCH_DATA_DIR=/opt/localbench/data
+Environment=LOCALBENCH_MAX_RUNS=2
+Environment=LOCALBENCH_RATE_LIMIT=6/600
+# No shell secrets here: endpoints/keys are supplied per run through the UI.
+ExecStart=/opt/localbench/.venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 21700 --proxy-headers --forwarded-allow-ips=127.0.0.1 --timeout-keep-alive 65
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=localbench
+
+# hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/opt/localbench/data
+
+[Install]
+WantedBy=multi-user.target

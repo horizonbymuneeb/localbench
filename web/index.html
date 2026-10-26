@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f6f7f9" />
+    <meta
+      name="description"
+      content="LocalBench — benchmark OpenAI-compatible LLM endpoints: TTFT, prefill and decode throughput, context ladder, concurrency, GPU telemetry."
+    />
+    <title>LocalBench — LLM benchmark console</title>
+    <link rel="preload" href="/vendor/fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/vendor/fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ffffff'/%3E%3Cpath d='M2 11l3-4 3 3 2-5 4 6' stroke='%230b66d0' stroke-width='1.6' fill='none'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <!-- =====================================================================
+         Inline SVG sprite. 24x24 viewBox, stroke 1.75, round caps, no fills.
+         Referenced with <use href="#i-name"> — no icon font, no emoji.
+         ===================================================================== -->
+    <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="m5 3 14 9-14 9V3z" /></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></symbol>
+      <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></symbol>
+      <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><path d="M15 3h6v6" /><path d="M10 14 21 3" /></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></symbol>
+      <symbol id="i-alert-triangle" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4M12 17h.01" /></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" /><rect x="9" y="9" width="6" height="6" /><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" /></symbol>
+      <symbol id="i-memory-chip" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2" /><path d="M6 7V3M12 7V3M18 7V3M6 21v-4M12 21v-4M18 21v-4" /><rect x="7" y="10" width="10" height="4" /></symbol>
+      <symbol id="i-thermometer" viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" /></symbol>
+      <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" /></symbol>
+      <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14l4-4" /><path d="M3.34 19a10 10 0 1 1 17.32 0" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M10 11v6M14 11v6" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M23 4v6h-6" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" /></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="M2 2l20 20" /></symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6" /><path d="M12 19h8" /></symbol>
+      <symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><path d="M6 6h.01M6 18h.01" /></symbol>
+      <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></symbol>
+      <symbol id="i-signal" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0" /><path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><path d="M12 20h.01" /></symbol>
+      <symbol id="i-spinner" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+    </svg>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="icon" width="18" height="18"><use href="#i-activity" /></svg>
+          </span>
+          <span class="brand-name">LocalBench</span>
+          <span class="brand-sub">LLM benchmark console</span>
+        </div>
+        <div class="topbar-meta">
+          <span class="status-pill" id="health-dot" data-state="unknown" title="Backend health">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="health-text">connecting</span>
+          </span>
+          <span class="meta-item meta-optional" id="meta-runs">— runs</span>
+          <span class="meta-item mono meta-optional" id="app-version">v—</span>
+        </div>
+      </header>
+
+      <nav class="tabs" role="tablist" aria-label="Views">
+        <button class="tab" id="tabbtn-run" role="tab" type="button" aria-selected="true" aria-controls="tab-run" data-tab="run">
+          <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-play" /></svg>
+          Run
+        </button>
+        <button class="tab" id="tabbtn-history" role="tab" type="button" aria-selected="false" aria-controls="tab-history" data-tab="history" tabindex="-1">
+          <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-clock" /></svg>
+          History
+          <span class="tab-count" id="history-count" hidden>0</span>
+        </button>
+        <button class="tab" id="tabbtn-compare" role="tab" type="button" aria-selected="false" aria-controls="tab-compare" data-tab="compare" tabindex="-1">
+          <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-columns" /></svg>
+          Compare
+          <span class="tab-count" id="compare-count" hidden>0</span>
+        </button>
+      </nav>
+
+      <main class="main">
+        <!-- ================================ RUN ================================ -->
+        <section class="tabpanel" id="tab-run" role="tabpanel" aria-labelledby="tabbtn-run" tabindex="0">
+          <div class="run-layout">
+            <aside class="panel form-panel">
+              <header class="panel-head">
+                <span class="panel-label">
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-server" /></svg>
+                  Endpoint
+                </span>
+                <span class="panel-meta" id="discover-status" role="status"></span>
+              </header>
+              <div class="panel-body">
+                <form id="run-form" novalidate>
+                  <div class="field">
+                    <label for="preset-select">Preset</label>
+                    <select id="preset-select">
+                      <option value="">Manual endpoint…</option>
+                    </select>
+                    <p class="field-hint preset-note" id="preset-note" hidden></p>
+                  </div>
+
+                  <div class="credential-row" id="credential-row" hidden>
+                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-key" /></svg>
+                    <div class="credential-body">
+                      <span class="credential-title">Server-managed credential</span>
+                      <span class="credential-hint" id="credential-hint">the endpoint key is held by the server and never shown to the browser</span>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label for="base-url">Base URL</label>
+                    <div class="input-group">
+                      <span class="input-icon" aria-hidden="true">
+                        <svg class="icon" width="14" height="14"><use href="#i-link" /></svg>
+                      </span>
+                      <input id="base-url" name="base_url" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:8080/v1" />
+                    </div>
+                  </div>
+
+                  <div class="field" id="api-key-field">
+                    <label for="api-key">API key</label>
+                    <div class="input-group">
+                      <span class="input-icon" aria-hidden="true">
+                        <svg class="icon" width="14" height="14"><use href="#i-key" /></svg>
+                      </span>
+                      <input id="api-key" name="api_key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-… (optional for local servers)" />
+                      <button class="btn btn-icon" id="toggle-key" type="button" aria-pressed="false" aria-label="Show API key" title="Show / hide API key">
+                        <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-eye" id="toggle-key-use" /></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label for="model">Model</label>
+                    <div class="input-group">
+                      <span class="input-icon" aria-hidden="true">
+                        <svg class="icon" width="14" height="14"><use href="#i-cpu" /></svg>
+                      </span>
+                      <input id="model" name="model" type="text" list="model-options" autocomplete="off" spellcheck="false" placeholder="model id, e.g. qwen3-27b" />
+                      <button class="btn btn-ghost" id="fetch-models" type="button">
+                        <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-search" /></svg>
+                        Fetch
+                      </button>
+                    </div>
+                    <datalist id="model-options"></datalist>
+                    <p class="field-hint" id="model-hint">Type manually, or fetch the endpoint model list.</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="label">Label</label>
+                    <input id="label" name="label" type="text" maxlength="120" autocomplete="off" placeholder="e.g. llama.cpp Qwen3-27B MTP draft=3" />
+                    <p class="field-hint">Shown in History and Compare — name the configuration.</p>
+                  </div>
+
+                  <div class="accordion">
+                    <button class="accordion-toggle" id="adv-toggle" type="button" aria-expanded="false" aria-controls="advanced">
+                      <svg class="icon caret" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                      <span>Advanced config</span>
+                      <span class="accordion-meta" id="adv-summary"></span>
+                    </button>
+                    <div class="accordion-body" id="advanced" hidden>
+                      <div class="field">
+                        <label for="cfg-contexts">Context ladder (tokens)</label>
+                        <input id="cfg-contexts" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1024,4096,8192,16384,32768,65536" />
+                        <p class="field-hint">Comma separated. Rungs above the model context are skipped.</p>
+                      </div>
+                      <div class="field">
+                        <label for="cfg-concurrency">Concurrency levels</label>
+                        <input id="cfg-concurrency" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="1,2,4,8" />
+                      </div>
+                      <div class="form-row">
+                        <div class="field">
+                          <label for="cfg-cc">Concurrency context</label>
+                          <input id="cfg-cc" type="number" min="128" step="128" value="2048" />
+                        </div>
+                        <div class="field">
+                          <label for="cfg-max-tokens">Max tokens</label>
+                          <input id="cfg-max-tokens" type="number" min="1" step="1" value="128" />
+                        </div>
+                        <div class="field">
+                          <label for="cfg-repeats">Repeats</label>
+                          <input id="cfg-repeats" type="number" min="1" step="1" value="1" />
+                        </div>
+                        <div class="field">
+                          <label for="cfg-warmup">Warmup requests</label>
+                          <input id="cfg-warmup" type="number" min="0" step="1" value="1" />
+                        </div>
+                        <div class="field">
+                          <label for="cfg-timeout">Request timeout (s)</label>
+                          <input id="cfg-timeout" type="number" min="10" step="10" value="600" />
+                        </div>
+                        <div class="field">
+                          <label for="cfg-telemetry">GPU telemetry</label>
+                          <select id="cfg-telemetry">
+                            <option value="auto">auto</option>
+                            <option value="on">on (agent)</option>
+                            <option value="off">off</option>
+                          </select>
+                          <p class="field-hint">auto uses the agent only if one is attached.</p>
+                        </div>
+                      </div>
+                      <div class="check-line">
+                        <input id="cfg-ladder" type="checkbox" checked />
+                        <label for="cfg-ladder">Measure context ladder</label>
+                      </div>
+                      <div class="check-line">
+                        <input id="cfg-conc-enable" type="checkbox" checked />
+                        <label for="cfg-conc-enable">Measure concurrency</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="form-error" class="inline-error" role="alert" hidden>
+                    <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-alert-triangle" /></svg>
+                    <span id="form-error-text"></span>
+                  </div>
+
+                  <button class="btn btn-primary btn-block" id="run-btn" type="submit">
+                    <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-play" /></svg>
+                    Run benchmark
+                  </button>
+                  <p class="field-hint rate-limit-note" id="rate-limit-note" hidden></p>
+                </form>
+              </div>
+            </aside>
+
+            <section class="panel live-panel" id="live-panel">
+              <header class="panel-head">
+                <span class="panel-label">
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-activity" /></svg>
+                  Live run
+                </span>
+                <span class="panel-meta" id="live-sub">no run selected</span>
+                <div class="head-actions">
+                  <span class="status-pill" id="run-status" data-status="idle" hidden>
+                    <span class="dot" aria-hidden="true"></span>
+                    <span id="run-status-text">idle</span>
+                  </span>
+                  <button class="btn btn-sm btn-danger" id="cancel-btn" type="button" hidden>
+                    <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-x" /></svg>
+                    Cancel
+                  </button>
+                </div>
+              </header>
+
+              <div class="panel-body">
+                <div id="live-skeleton" class="skeleton" hidden>
+                  <div class="sk-line sk-w40"></div>
+                  <div class="sk-bar"></div>
+                  <div class="sk-tiles">
+                    <div class="sk-tile"></div><div class="sk-tile"></div><div class="sk-tile"></div>
+                    <div class="sk-tile"></div><div class="sk-tile"></div><div class="sk-tile"></div>
+                  </div>
+                  <div class="sk-line sk-w60"></div>
+                  <div class="sk-chart"></div>
+                </div>
+
+                <div id="live-empty" class="empty-state">
+                  <svg class="icon empty-icon" width="22" height="22" aria-hidden="true"><use href="#i-activity" /></svg>
+                  <p class="empty-title">No run selected</p>
+                  <p class="empty-body">
+                    Paste an OpenAI-compatible endpoint, pick a model and run the benchmark. Results stream in
+                    live; finished runs are saved to History automatically.
+                  </p>
+                </div>
+
+                <div id="live-body" hidden>
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Progress</h3>
+                      <span class="section-meta" id="progress-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                      <span class="section-value mono" id="progress-pct">0%</span>
+                    </div>
+                    <div class="progress-block">
+                      <div class="progress" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+                      <div class="progress-meta">
+                        <span id="progress-label">queued</span>
+                        <span class="run-id mono" id="run-meta"></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Headline</h3>
+                      <span class="section-meta" id="tiles-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="tiles" id="tiles"></div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Throughput vs input</h3>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="chart-grid">
+                      <figure class="chart-card">
+                        <figcaption>
+                          <span class="swatch" data-metric="ttft" aria-hidden="true"></span>
+                          <span class="fig-label">TTFT vs context</span>
+                          <span class="fig-unit">ms</span>
+                        </figcaption>
+                        <div class="chart-box">
+                          <canvas id="chart-ttft" aria-label="Time to first token by context length" role="img"></canvas>
+                          <div class="chart-empty" id="chart-ttft-empty">no points yet</div>
+                        </div>
+                      </figure>
+                      <figure class="chart-card">
+                        <figcaption>
+                          <span class="swatch" data-metric="prefill" aria-hidden="true"></span>
+                          <span class="fig-label">Prefill tok/s vs context</span>
+                          <span class="fig-unit" id="prefill-note">tok/s</span>
+                        </figcaption>
+                        <div class="chart-box">
+                          <canvas id="chart-prefill" aria-label="Prefill tokens per second by context length" role="img"></canvas>
+                          <div class="chart-empty" id="chart-prefill-empty">no points yet</div>
+                        </div>
+                      </figure>
+                      <figure class="chart-card">
+                        <figcaption>
+                          <span class="swatch" data-metric="decode" aria-hidden="true"></span>
+                          <span class="fig-label">Decode tok/s vs context</span>
+                          <span class="fig-unit">tok/s</span>
+                        </figcaption>
+                        <div class="chart-box">
+                          <canvas id="chart-decode" aria-label="Decode tokens per second by context length" role="img"></canvas>
+                          <div class="chart-empty" id="chart-decode-empty">no points yet</div>
+                        </div>
+                      </figure>
+                      <figure class="chart-card">
+                        <figcaption>
+                          <span class="swatch" data-metric="agg" aria-hidden="true"></span>
+                          <span class="fig-label">Aggregate tok/s vs concurrency</span>
+                          <span class="fig-unit">tok/s</span>
+                        </figcaption>
+                        <div class="chart-box">
+                          <canvas id="chart-agg" aria-label="Aggregate tokens per second by concurrency" role="img"></canvas>
+                          <div class="chart-empty" id="chart-agg-empty">no points yet</div>
+                        </div>
+                      </figure>
+                    </div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Context ladder</h3>
+                      <span class="section-meta" id="ctx-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="table-wrap" id="ctx-table-wrap">
+                      <table class="data" id="ctx-table">
+                        <thead>
+                          <tr>
+                            <th class="num">Context</th>
+                            <th class="num">Prompt tok</th>
+                            <th class="num">TTFT ms</th>
+                            <th class="num">Prefill tok/s</th>
+                            <th class="num">Decode tok/s</th>
+                            <th class="num">Total s</th>
+                            <th class="num">Draft accept</th>
+                            <th class="center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ctx-body"></tbody>
+                      </table>
+                    </div>
+                    <div class="data-cards" id="ctx-cards"></div>
+                    <div class="table-empty" id="ctx-empty">No context points yet.</div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Concurrency</h3>
+                      <span class="section-meta" id="conc-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="table-wrap" id="conc-table-wrap">
+                      <table class="data" id="conc-table">
+                        <thead>
+                          <tr>
+                            <th class="num">n</th>
+                            <th class="num">Agg tok/s</th>
+                            <th class="num">Per-req tok/s</th>
+                            <th class="num">TTFT p50 ms</th>
+                            <th class="num">TTFT p95 ms</th>
+                            <th class="num">Wall s</th>
+                            <th class="num">Completion tok</th>
+                            <th class="center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="conc-body"></tbody>
+                      </table>
+                    </div>
+                    <div class="data-cards" id="conc-cards"></div>
+                    <div class="table-empty" id="conc-empty">No concurrency points yet.</div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>GPU telemetry</h3>
+                      <span class="section-meta" id="gpu-samples"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div id="gpu-empty" class="note-line">
+                      <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-info" /></svg>
+                      <span>No GPU agent attached — telemetry unavailable.</span>
+                    </div>
+                    <div class="gpu-block" id="gpu-block" hidden>
+                      <div class="gpu-left">
+                        <div class="gpu-tiles" id="gpu-tiles"></div>
+                        <div class="gpu-note" id="gpu-note"></div>
+                      </div>
+                      <div class="spark-card">
+                        <div class="spark-legend" id="spark-legend"></div>
+                        <div class="spark-box"><canvas id="spark" aria-label="Live GPU telemetry sparkline" role="img"></canvas></div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>GPU agent</h3>
+                      <span class="section-meta" id="agent-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="agent-box" id="agent-box" hidden>
+                      <div class="agent-head">
+                        <span class="agent-state" id="agent-state" data-connected="false">
+                          <span class="dot" aria-hidden="true"></span>
+                          <span id="agent-state-text">not connected</span>
+                        </span>
+                      </div>
+                      <div class="agent-cmd">
+                        <code id="agent-cmd">—</code>
+                        <button class="btn btn-sm btn-ghost" id="copy-agent" type="button">
+                          <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-copy" /></svg>
+                          Copy
+                        </button>
+                      </div>
+                      <div class="agent-hint">Run this on the GPU host to stream VRAM / power / temp / utilisation.</div>
+                    </div>
+                    <div id="agent-unavailable" class="note-line" hidden>
+                      <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-info" /></svg>
+                      <span>GPU agent is disabled on this server.</span>
+                    </div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Export</h3>
+                      <span class="section-meta" id="export-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="toolbar" id="export-links"></div>
+                  </section>
+
+                  <section class="section">
+                    <div class="section-head">
+                      <h3>Log</h3>
+                      <span class="section-meta" id="log-note"></span>
+                      <span class="rule" aria-hidden="true"></span>
+                    </div>
+                    <div class="log-list" id="log-list" aria-live="polite"></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ============================== HISTORY ============================== -->
+        <section class="tabpanel" id="tab-history" role="tabpanel" aria-labelledby="tabbtn-history" tabindex="0" hidden>
+          <section class="panel">
+            <header class="panel-head">
+              <span class="panel-label">
+                <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-clock" /></svg>
+                History
+              </span>
+              <span class="panel-meta" id="history-sub">completed runs are saved automatically</span>
+              <div class="head-actions">
+                <button class="btn btn-sm btn-ghost" id="history-refresh" type="button">
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-refresh" /></svg>
+                  Refresh
+                </button>
+                <button class="btn btn-sm btn-primary" id="history-compare" type="button" disabled>
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-columns" /></svg>
+                  Compare selected
+                </button>
+                <button class="btn btn-sm btn-ghost" id="history-clear-all" type="button" hidden>
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-trash" /></svg>
+                  Clear all
+                </button>
+              </div>
+            </header>
+            <div class="panel-body flush">
+              <div id="history-skeleton" class="skeleton" hidden>
+                <div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div>
+              </div>
+              <div id="history-error" class="inline-error" role="alert" hidden>
+                <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-alert-triangle" /></svg>
+                <div class="inline-error-body">
+                  <strong>History unavailable</strong>
+                  <span id="history-error-text"></span>
+                </div>
+                <button class="btn btn-sm btn-ghost" id="history-retry" type="button">Retry</button>
+              </div>
+              <div class="table-wrap table-wrap-history">
+                <table class="data" id="history-table">
+                  <thead>
+                    <tr>
+                      <th class="center" style="width: 36px">
+                        <input type="checkbox" id="history-select-all" aria-label="Select all visible runs" />
+                      </th>
+                      <th>Label</th>
+                      <th>Model</th>
+                      <th>Endpoint</th>
+                      <th class="num">TTFT p50</th>
+                      <th class="num">Decode</th>
+                      <th class="num">Prefill tok/s</th>
+                      <th class="num">Agg tok/s</th>
+                      <th class="center">GPU</th>
+                      <th>Created</th>
+                      <th class="center">Status</th>
+                      <th class="num">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-body"></tbody>
+                </table>
+              </div>
+              <div class="data-cards" id="history-cards"></div>
+              <div class="table-empty" id="history-empty">
+                <svg class="icon empty-icon" width="20" height="20" aria-hidden="true"><use href="#i-database" /></svg>
+                <strong>No runs saved in this browser</strong>
+                <span>Run a benchmark on the Run tab — finished runs are saved locally here, never on the server.</span>
+              </div>
+              <footer class="panel-foot" id="history-foot" hidden>
+                <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-shield" /></svg>
+                <span class="panel-foot-usage" id="history-usage"></span>
+                <span class="panel-foot-note">Runs are stored in this browser only — nothing is kept on the server.</span>
+              </footer>
+            </div>
+          </section>
+        </section>
+
+        <!-- ============================== COMPARE ============================== -->
+        <section class="tabpanel" id="tab-compare" role="tabpanel" aria-labelledby="tabbtn-compare" tabindex="0" hidden>
+          <div id="compare-empty" class="panel">
+            <div class="empty-state">
+              <svg class="icon empty-icon" width="22" height="22" aria-hidden="true"><use href="#i-columns" /></svg>
+              <p class="empty-title">Nothing to compare yet</p>
+              <p class="empty-body">
+                Select two or more runs on the History tab and press Compare selected. The first selected run is
+                the baseline; every other run is shown as a signed, coloured delta against it.
+              </p>
+            </div>
+          </div>
+
+          <div id="compare-body" hidden>
+            <section class="panel">
+              <header class="panel-head">
+                <span class="panel-label">
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-columns" /></svg>
+                  Compare
+                </span>
+                <span class="panel-meta" id="compare-sub"></span>
+                <div class="head-actions">
+                  <button class="btn btn-sm btn-ghost" id="compare-clear" type="button">
+                    <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-x" /></svg>
+                    Clear
+                  </button>
+                </div>
+              </header>
+              <div class="panel-body">
+                <div class="compare-legend" id="compare-legend"></div>
+
+                <div class="section-head">
+                  <h3>Headline metrics</h3>
+                  <span class="section-meta">delta vs baseline · green = better</span>
+                  <span class="rule" aria-hidden="true"></span>
+                </div>
+                <div class="data-cards" id="compare-run-cards"></div>
+                <div class="table-wrap">
+                  <table class="data" id="compare-headline"></table>
+                </div>
+
+                <div class="section-head">
+                  <h3>Per-context deltas</h3>
+                  <span class="section-meta">each run vs baseline at the same context</span>
+                  <span class="rule" aria-hidden="true"></span>
+                </div>
+                <div class="data-cards" id="compare-ctx-cards"></div>
+                <div class="table-wrap">
+                  <table class="data" id="compare-context"></table>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <header class="panel-head">
+                <span class="panel-label">
+                  <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-activity" /></svg>
+                  Overlaid curves
+                </span>
+                <span class="panel-meta">one series per run</span>
+              </header>
+              <div class="panel-body">
+                <div class="chart-grid chart-grid-compare">
+                  <figure class="chart-card">
+                    <figcaption>
+                      <span class="swatch" data-metric="ttft" aria-hidden="true"></span>
+                      <span class="fig-label">TTFT vs context</span>
+                      <span class="fig-unit">ms</span>
+                    </figcaption>
+                    <div class="chart-box"><canvas id="cc-ttft" aria-label="TTFT by context for selected runs" role="img"></canvas></div>
+                  </figure>
+                  <figure class="chart-card">
+                    <figcaption>
+                      <span class="swatch" data-metric="prefill" aria-hidden="true"></span>
+                      <span class="fig-label">Prefill tok/s vs context</span>
+                      <span class="fig-unit">tok/s</span>
+                    </figcaption>
+                    <div class="chart-box"><canvas id="cc-prefill" aria-label="Prefill throughput by context for selected runs" role="img"></canvas></div>
+                  </figure>
+                  <figure class="chart-card">
+                    <figcaption>
+                      <span class="swatch" data-metric="decode" aria-hidden="true"></span>
+                      <span class="fig-label">Decode tok/s vs context</span>
+                      <span class="fig-unit">tok/s</span>
+                    </figcaption>
+                    <div class="chart-box"><canvas id="cc-decode" aria-label="Decode throughput by context for selected runs" role="img"></canvas></div>
+                  </figure>
+                  <figure class="chart-card">
+                    <figcaption>
+                      <span class="swatch" data-metric="agg" aria-hidden="true"></span>
+                      <span class="fig-label">Aggregate tok/s vs concurrency</span>
+                      <span class="fig-unit">tok/s</span>
+                    </figcaption>
+                    <div class="chart-box"><canvas id="cc-agg" aria-label="Aggregate throughput by concurrency for selected runs" role="img"></canvas></div>
+                  </figure>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="action-bar" id="action-bar" hidden>
+      <button class="btn btn-ghost" id="action-secondary" type="button" hidden></button>
+      <button class="btn btn-primary" id="action-primary" type="button"></button>
+    </div>
+
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+    <script src="/vendor/chart.umd.min.js"></script>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

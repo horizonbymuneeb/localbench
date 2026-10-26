@@ -1,0 +1,16 @@
+[
+  {
+    "id": "llamacpp-lan",
+    "name": "llama.cpp \u00b7 LAN",
+    "base_url": "http://192.168.1.50:8080/v1",
+    "model": "your-model-gguf",
+    "note": "llama-server --host 0.0.0.0 --port 8080 --draft-model \u2026 (no key needed: put 'none')"
+  },
+  {
+    "id": "vllm-lan",
+    "name": "vLLM \u00b7 LAN",
+    "base_url": "http://192.168.1.50:8000/v1",
+    "model": "your-model",
+    "note": "vllm serve <model> --api-key optional"
+  }
+]
